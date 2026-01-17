@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { roleMiddleware } from "../middleware/role.middleware";
-import { User } from "../models/user.model";
+import { User } from "../../models/user.model";
 
 /**
  * 1. Initialize the Router
