@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    /* Basic Options */
+    "target": "ES2020",                // Modern JavaScript features
+    "module": "CommonJS",              // Node.js default module system
+    "rootDir": "./src",                // Source folder
+    "outDir": "./dist",                // Compiled JS output
+    "strict": true,                     // Enable all strict type-checking options
+    "esModuleInterop": true,           // Enables default import syntax compatibility
+    "moduleResolution": "node",        // Node.js module resolution
+    "resolveJsonModule": true,         // Allows importing JSON files
+    "skipLibCheck": true,              // Skip type checking of node_modules
+    "forceConsistentCasingInFileNames": true, // Avoid case-sensitive issues
+
+    /* Optional/Recommended */
+    "noImplicitAny": true,             // Warns on expressions with 'any' type
+    "noUnusedLocals": true,            // Reports unused local variables
+    "noUnusedParameters": true,        // Reports unused function parameters
+    "noFallthroughCasesInSwitch": true // Prevents switch fall-through errors
+  },
+  "include": ["src/**/*"],             // Include all TypeScript files in src
+  "exclude": ["node_modules", "dist"]  // Exclude node_modules and compiled output
+}
