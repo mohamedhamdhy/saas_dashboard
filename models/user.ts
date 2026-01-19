@@ -20,10 +20,11 @@ interface UserAttributes {
   mfaSecret?: string | null;
   isMfaEnabled?: boolean;
   mfaRecoveryCodes?: string[] | null;
+  tokenVersion: number;
 }
 
 interface UserCreationAttributes extends Optional<UserAttributes,
-  "id" | "organizationId" | "phoneNumber" | "isActive" | "passwordChangedAt" | "passwordResetToken" | "passwordResetExpires" | "refreshToken" | "mfaSecret" | "isMfaEnabled" | "mfaRecoveryCodes"
+  "id" | "organizationId" | "phoneNumber" | "isActive" | "passwordChangedAt" | "passwordResetToken" | "passwordResetExpires" | "refreshToken" | "mfaSecret" | "isMfaEnabled" | "mfaRecoveryCodes" | "tokenVersion"
 > { }
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -42,6 +43,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public mfaSecret?: string | null;
   public isMfaEnabled?: boolean;
   public mfaRecoveryCodes?: string[] | null;
+  public tokenVersion!: number;
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -61,6 +63,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     User.belongsTo(models.Role, { foreignKey: "roleId", as: "role" });
     User.belongsTo(models.Organization, { foreignKey: "organizationId", as: "organization" });
     User.hasMany(models.AuditLog, { foreignKey: "userId", as: "auditLogs" });
+    User.hasMany(models.Session, { foreignKey: "userId", as: "sessions" });
   }
 
   toJSON() {
@@ -144,6 +147,11 @@ User.init({
   mfaRecoveryCodes: {
     type: DataTypes.JSONB,
     allowNull: true,
+  },
+  tokenVersion: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
   }
 }, {
   sequelize,

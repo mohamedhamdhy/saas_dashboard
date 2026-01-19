@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { User, Blacklist, Role, Organization } from "../../models/index";
+import { User, Blacklist, Role, Organization, Session } from "../../models/index";
 import { AppError } from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 
@@ -15,7 +15,6 @@ export interface AuthRequest extends Request {
 }
 
 export const authMiddleware = catchAsync(async (req: AuthRequest, _res: Response, next: NextFunction) => {
-  // 1) Extract Token
   const authHeader = req.headers.authorization;
   let token: string;
 
@@ -49,6 +48,10 @@ export const authMiddleware = catchAsync(async (req: AuthRequest, _res: Response
     return next(new AppError("The user belonging to this token no longer exists.", 401));
   }
 
+  if (user.tokenVersion !== decoded.tokenVersion) {
+    return next(new AppError("Security Alert: This session has been remotely revoked. Please log in again.", 401));
+  }
+
   if (!user.isActive) {
     return next(new AppError("Your account has been deactivated.", 403));
   }
@@ -59,11 +62,21 @@ export const authMiddleware = catchAsync(async (req: AuthRequest, _res: Response
 
   if (user.passwordChangedAt) {
     const changedTimestamp = Math.floor(user.passwordChangedAt.getTime() / 1000);
-
     if (changedTimestamp > decoded.iat) {
       return next(new AppError("Security alert: Password recently changed. Please log in again.", 401));
     }
   }
+
+  Session.update(
+    { lastActive: new Date() },
+    {
+      where: {
+        userId: user.id,
+        ipAddress: req.ip || req.headers["x-forwarded-for"] || "127.0.0.1",
+        userAgent: req.headers["user-agent"] || "Unknown Device"
+      }
+    }
+  ).catch(err => console.error("Session update failed:", err));
 
   req.user = {
     id: user.id,
@@ -73,7 +86,6 @@ export const authMiddleware = catchAsync(async (req: AuthRequest, _res: Response
 
   next();
 });
-
 
 export const roleMiddleware = (allowedRoles: string[]) => {
   return (req: AuthRequest, _res: Response, next: NextFunction) => {

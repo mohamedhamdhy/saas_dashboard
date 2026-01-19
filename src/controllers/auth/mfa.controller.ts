@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { User, Role } from "../../../models/index";
+import { Session } from "../../../models/session";
 import { AuthRequest } from "../../middleware/auth.middleware";
 import { catchAsync } from "../../utils/catchAsync";
 import { AppError } from "../../utils/appError";
@@ -12,6 +13,14 @@ import { generateTokens } from "../../utils/token";
 import { sendResponse } from "../../utils/sendResponse";
 
 const { authenticator } = require("otplib");
+
+const createUserSession = async (req: Request, userId: string) => {
+  await Session.create({
+    userId,
+    ipAddress: req.ip || req.headers["x-forwarded-for"] || "127.0.0.1",
+    userAgent: req.headers["user-agent"] || "Unknown Device"
+  });
+};
 
 export const setupMFA = catchAsync(async (req: AuthRequest, res: Response, _next: NextFunction) => {
   const user = await User.findByPk(req.user?.id);
@@ -83,6 +92,9 @@ export const verifyLoginMFA = catchAsync(async (req: Request, res: Response, nex
   }
 
   const { accessToken, refreshToken } = generateTokens(user);
+
+  await createUserSession(req, user.id);
+
   user.refreshToken = refreshToken;
   await user.save();
 
@@ -153,6 +165,9 @@ export const verifyRecoveryCode = catchAsync(async (req: Request, res: Response,
   user.mfaRecoveryCodes = updatedCodes;
 
   const { accessToken, refreshToken } = generateTokens(user);
+
+  await createUserSession(req, user.id);
+
   user.refreshToken = refreshToken;
   await user.save();
 

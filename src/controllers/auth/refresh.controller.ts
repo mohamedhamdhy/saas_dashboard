@@ -26,7 +26,16 @@ export const refreshToken = catchAsync(async (req: Request, res: Response, next:
     include: [{ model: Role, as: "role", attributes: ["name"] }]
   });
 
-  if (!user || user.refreshToken !== incomingRefreshToken) {
+  if (!user) {
+    return next(new AppError("User no longer exists.", 401));
+  }
+
+  if (user.tokenVersion !== decoded.tokenVersion) {
+    res.clearCookie("refreshToken");
+    return next(new AppError("Security Alert: This session has been revoked. Please log in again.", 401));
+  }
+
+  if (user.refreshToken !== incomingRefreshToken) {
     return next(new AppError("Session expired or hijacked. Please log in again.", 401));
   }
 
