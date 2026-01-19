@@ -8,10 +8,10 @@ const logger = winston.createLogger({
   level: process.env.NODE_ENV === "production" ? "info" : "debug",
   format: winston.format.combine(
     winston.format.timestamp(),
-   winston.format.printf((info) => {
-  const { timestamp = new Date().toISOString(), level, message } = info as { timestamp?: string; level: string; message: string };
-  return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
-})
+    winston.format.printf((info) => {
+      const { timestamp = new Date().toISOString(), level, message } = info as { timestamp?: string; level: string; message: string };
+      return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+    })
 
   ),
   transports: [new winston.transports.Console()],
@@ -27,7 +27,7 @@ export const sequelize = new Sequelize(
     dialect: "postgres",
     dialectOptions:
       process.env.NODE_ENV === "production"
-        ? { ssl: { require: true, rejectUnauthorized: false } } 
+        ? { ssl: { require: true, rejectUnauthorized: false } }
         : undefined,
     logging: (msg) => logger.debug(msg),
     pool: {

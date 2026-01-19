@@ -1,31 +1,38 @@
 import { Router } from "express";
-import { register, login } from "../controllers/auth.controller";
+import { login, register, logout } from "../controllers/auth/index";
+import {
+  setupMFA,
+  activateMFA,
+  verifyLoginMFA,
+  disableMFA,
+  verifyRecoveryCode
+} from "../controllers/auth/mfa.controller";
+import { refreshToken } from "../controllers/auth/refresh.controller";
+import { forgotPassword, resetPassword } from "../controllers/auth/password.controller";
+import { authMiddleware, roleMiddleware } from "../middleware/auth.middleware";
+import { authLimiter } from "../../src/middleware/ratelimit.middlware";
+import {
+  validate,
+  registerSchema,
+  loginSchema,
+  resetPasswordSchema
+} from "../middleware/validation/validate.validation";
 
-/**
- * 1. Initialize the Router
- * The Router is a mini-app that only handles a specific subset of routes.
- * This keeps our main server file clean and organized.
- */
 const router = Router();
 
-/**
- * 2. Define the Register Route
- * METHOD: POST
- * PATH: /register (Relative to where this router is mounted)
- * HANDLER: The 'register' function from our controller.
- */
-router.post("/register", register);
+router.post("/register", authLimiter, authMiddleware, roleMiddleware(["SUPER_ADMIN"]), validate(registerSchema), register);
+router.post("/login", authLimiter, validate(loginSchema), login);
+router.post("/forgot-password", authLimiter, forgotPassword);
 
-/**
- * 3. Define the Login Route
- * METHOD: POST
- * PATH: /login
- * HANDLER: The 'login' function from our controller.
- */
-router.post("/login", login);
+router.patch("/reset-password/:token", authLimiter, validate(resetPasswordSchema), resetPassword);
 
-/**
- * 4. Export the Router
- * We export it so we can "mount" it in our main app file (usually server.ts).
- */
+router.post("/mfa/verify-login", authLimiter, verifyLoginMFA);
+router.post("/mfa/recovery-login", authLimiter, verifyRecoveryCode);
+router.post("/refresh-token", refreshToken);
+router.post("/logout", authMiddleware, logout);
+
+router.get("/mfa/setup", authMiddleware, setupMFA);
+router.post("/mfa/activate", authMiddleware, authLimiter, activateMFA);
+router.post("/mfa/disable", authMiddleware, disableMFA);
+
 export default router;
