@@ -1,41 +1,58 @@
-import express from "express";
+import express, { Application, Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
+import helmet from "helmet";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import { globalErrorHandler } from "./middleware/error.middleware";
+import { AppError } from "./utils/appError";
+import { apiLimiter, authLimiter } from "./middleware/ratelimit.middlware";
 
-// 1. Load environment variables (.env) into the application
 dotenv.config();
 
-// 2. Initialize the Express application instance
-const app = express();
+const app: Application = express();
 
-/**
- * 3. Global Middleware
- * express.json() is a built-in middleware that parses incoming 
- * requests with JSON payloads. Without this, 'req.body' would be undefined.
- */
-app.use(express.json());
+app.use(helmet());
 
-/**
- * 4. Database Connection
- * Triggers the authentication and synchronization logic 
- * defined in your 'db.ts' file.
- */
+const allowedOrigins = [
+    "http://localhost:3000",
+    "https://your-saas-dashboard.com"
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = "The CORS policy for this site does not allow access from the specified Origin.";
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true,
+}));
+
+app.use(express.json({ limit: "10kb" }));
+app.use(cookieParser());
+
+app.use("/api", apiLimiter);
+
 connectDB();
 
-/**
- * 5. Route Mounting
- * We "prefix" our routes here. 
- * - All routes inside 'authRoutes' will now start with /api/auth
- * - All routes inside 'userRoutes' will now start with /api/users
- */
-app.use("/api/auth", authRoutes); // Example: POST /api/auth/register
-app.use("/api/users", userRoutes); // Example: GET /api/users/
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+app.use("/api/auth/mfa/activate", authLimiter);
+app.use("/api/auth/mfa/verify-login", authLimiter);
 
-/**
- * 6. Export the App
- * We export 'app' so it can be imported by a 'server.ts' file (to start the listener)
- * or by testing frameworks like Jest/Supertest.
- */
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+
+app.all("*", (req: Request, _res: Response, next: NextFunction) => {
+    next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+});
+
+app.use(globalErrorHandler);
+
 export default app;
