@@ -18,7 +18,7 @@ export const registerSchema = z.object({
         organizationName: z.string().optional(),
         phoneNumber: z.string().optional(),
     }).refine((data) => data.password === data.confirmPassword, {
-        message: "Passwords do not match", // A3
+        message: "Passwords do not match",
         path: ["confirmPassword"],
     }),
 });

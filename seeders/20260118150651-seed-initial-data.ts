@@ -21,9 +21,11 @@ export async function up(queryInterface: QueryInterface) {
     updatedAt: new Date()
   }]);
 
+  const userId = uuidv4();
   const hashedPassword = await bcrypt.hash("Admin@123", 10);
+
   await queryInterface.bulkInsert("users", [{
-    id: uuidv4(),
+    id: userId,
     name: "Super Admin",
     email: "superadmin@gmail.com",
     password: hashedPassword,
@@ -31,12 +33,35 @@ export async function up(queryInterface: QueryInterface) {
     organizationId: orgId,
     phoneNumber: "1234567890",
     isActive: true,
+    tokenVersion: 0,
     createdAt: new Date(),
     updatedAt: new Date()
   }]);
+
+  await queryInterface.bulkInsert("sessions", [
+    {
+      id: uuidv4(),
+      userId: userId,
+      ipAddress: "192.168.1.1",
+      userAgent: "Chrome / Windows 11 (Current)",
+      lastActive: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: uuidv4(),
+      userId: userId,
+      ipAddress: "172.20.10.4",
+      userAgent: "Safari / iPhone 15",
+      lastActive: new Date(Date.now() - 3600000),
+      createdAt: new Date(Date.now() - 3600000),
+      updatedAt: new Date(Date.now() - 3600000)
+    }
+  ]);
 }
 
 export async function down(queryInterface: QueryInterface) {
+  await queryInterface.bulkDelete("sessions", {});
   await queryInterface.bulkDelete("users", {});
   await queryInterface.bulkDelete("organizations", {});
   await queryInterface.bulkDelete("roles", {});

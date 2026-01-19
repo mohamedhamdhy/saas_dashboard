@@ -4,6 +4,7 @@ import { Role } from "./role";
 import { Organization } from "./organization";
 import { Blacklist } from "./blacklist";
 import { AuditLog } from "./auditLog";
+import { Session } from "./session";
 
 const models = {
   User,
@@ -11,6 +12,7 @@ const models = {
   Organization,
   Blacklist,
   AuditLog,
+  Session,
 };
 
 Object.values(models).forEach((model: any) => {
@@ -25,7 +27,8 @@ export {
   Role,
   Organization,
   Blacklist,
-  AuditLog
+  AuditLog,
+  Session
 };
 
 export default models;

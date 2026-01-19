@@ -1,11 +1,20 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { User, Role, Organization } from "../../../models/index";
+import { Session } from "../../../models/session";
 import { AppError } from "../../utils/appError";
 import { catchAsync } from "../../utils/catchAsync";
 import { logSecurityEvent } from "../../utils/logger";
 import { generateTokens } from "../../utils/token";
 import { sendResponse } from "../../utils/sendResponse";
+
+const createUserSession = async (req: Request, userId: string) => {
+  await Session.create({
+    userId,
+    ipAddress: req.ip || req.headers["x-forwarded-for"] || "127.0.0.1",
+    userAgent: req.headers["user-agent"] || "Unknown Device"
+  });
+};
 
 export const login = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
@@ -46,6 +55,8 @@ export const login = catchAsync(async (req: Request, res: Response, next: NextFu
   }
 
   const { accessToken, refreshToken } = generateTokens(user);
+
+  await createUserSession(req, user.id);
 
   user.refreshToken = refreshToken;
   await user.save();

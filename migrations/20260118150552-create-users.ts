@@ -17,6 +17,7 @@ export async function up(queryInterface: QueryInterface) {
     mfaSecret: { type: DataTypes.STRING, allowNull: true },
     isMfaEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
     mfaRecoveryCodes: { type: DataTypes.JSONB, allowNull: true },
+    tokenVersion: { type: DataTypes.INTEGER, defaultValue: 0, allowNull: false },
     createdAt: { type: DataTypes.DATE, allowNull: false },
     updatedAt: { type: DataTypes.DATE, allowNull: false },
     deletedAt: { type: DataTypes.DATE, allowNull: true },
