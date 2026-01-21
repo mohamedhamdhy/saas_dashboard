@@ -14,3 +14,14 @@ export const updatePasswordSchema = z.object({
     newPassword: z.string().min(8).max(100),
   }),
 });
+
+export const adminUpdateUserSchema = z.object({
+  body: z.object({
+    name: z.string().min(2).max(50).optional(),
+    email: z.string().email().optional(),
+    roleId: z.string().uuid().optional(),
+    organizationId: z.string().uuid().optional().nullable(),
+    isActive: z.boolean().optional(),
+    phoneNumber: z.string().optional().nullable(),
+  }).strict(),
+});

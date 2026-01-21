@@ -1,17 +1,31 @@
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import { sequelize } from "../src/config/db";
 
-export class Blacklist extends Model {
-  public id!: number;
+interface BlacklistAttributes {
+  id: string;
+  token: string;
+  expiresAt: Date;
+}
+
+// id is optional during creation because defaultValue handles it
+interface BlacklistCreationAttributes extends Optional<BlacklistAttributes, "id"> {}
+
+export class Blacklist extends Model<BlacklistAttributes, BlacklistCreationAttributes> {
+  public id!: string; 
   public token!: string;
   public expiresAt!: Date;
+
+  // Timestamps
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
 }
 
 Blacklist.init({
   id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+    allowNull: false
   },
   token: {
     type: DataTypes.TEXT,
@@ -24,6 +38,7 @@ Blacklist.init({
 }, {
   sequelize,
   modelName: "blacklist",
+  tableName: "blacklists",
   timestamps: true,
-  underscored: true
+  underscored: false 
 });

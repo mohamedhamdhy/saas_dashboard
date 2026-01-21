@@ -1,9 +1,14 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import { sequelize } from "../src/config/db";
-import { Role } from "./role";
-import { Organization } from "./organization";
 import bcrypt from "bcryptjs";
 
+// Use 'import type' to prevent circular dependency crashes at runtime
+import type { Role } from "./role";
+import type { Organization } from "./organization";
+
+/**
+ * Interface for the User model attributes
+ */
 interface UserAttributes {
   id: string;
   name: string;
@@ -23,6 +28,9 @@ interface UserAttributes {
   tokenVersion: number;
 }
 
+/**
+ * Interface for creating a User (makes certain fields optional)
+ */
 interface UserCreationAttributes extends Optional<UserAttributes,
   "id" | "organizationId" | "phoneNumber" | "isActive" | "passwordChangedAt" | "passwordResetToken" | "passwordResetExpires" | "refreshToken" | "mfaSecret" | "isMfaEnabled" | "mfaRecoveryCodes" | "tokenVersion"
 > { }
@@ -45,27 +53,47 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public mfaRecoveryCodes?: string[] | null;
   public tokenVersion!: number;
 
+  // Timestamps
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
   public readonly deletedAt!: Date | null;
+
+  // Association Properties (populated via 'include')
   public readonly role?: Role;
   public readonly organization?: Organization;
 
-  public get roleName(): string | undefined {
-    return this.role?.name;
-  }
-
+  /**
+   * Compares a provided password with the hashed password in the DB
+   */
   public async comparePassword(candidatePassword: string): Promise<boolean> {
     return await bcrypt.compare(candidatePassword, this.password);
   }
 
+  /**
+   * S+ ELITE: Defines associations using the registry from index.ts
+   */
   static associate(models: any) {
-    User.belongsTo(models.Role, { foreignKey: "roleId", as: "role" });
-    User.belongsTo(models.Organization, { foreignKey: "organizationId", as: "organization" });
-    User.hasMany(models.AuditLog, { foreignKey: "userId", as: "auditLogs" });
-    User.hasMany(models.Session, { foreignKey: "userId", as: "sessions" });
+    this.belongsTo(models.Role, { 
+      foreignKey: "roleId", 
+      as: "role" 
+    });
+    this.belongsTo(models.Organization, { 
+      foreignKey: "organizationId", 
+      as: "organization" 
+    });
+    this.hasMany(models.AuditLog, { 
+      foreignKey: "userId", 
+      as: "auditLogs" 
+    });
+    this.hasMany(models.Session, { 
+      foreignKey: "userId", 
+      as: "sessions" 
+    });
   }
 
+  /**
+   * S+ ELITE: Overrides default JSON output to hide sensitive fields
+   */
   toJSON() {
     const values: any = { ...this.get() };
 
@@ -76,6 +104,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     delete values.mfaSecret;
     delete values.mfaRecoveryCodes;
 
+    // Helper fields for easier frontend consumption
     values.roleName = this.role?.name || null;
     values.organizationName = this.organization?.name || null;
 
@@ -156,11 +185,8 @@ User.init({
 }, {
   sequelize,
   tableName: "users",
+  modelName: "user",
   timestamps: true,
-  paranoid: true,
-  indexes: [
-    { unique: true, fields: ["email"] },
-    { fields: ["roleId"] },
-    { fields: ["organizationId"] }
-  ]
+  paranoid: true, // Enables soft deletes (deletedAt)
+  underscored: false // Maps camelCase in code to snake_case in DB
 });

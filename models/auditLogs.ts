@@ -13,7 +13,10 @@ export class AuditLog extends Model {
   public readonly updatedAt!: Date;
 
   static associate(models: any) {
-    AuditLog.belongsTo(models.User, { foreignKey: "userId", as: "user" });
+    this.belongsTo(models.User, {
+      foreignKey: "userId",
+      as: "user"
+    });
   }
 }
 
@@ -32,17 +35,22 @@ AuditLog.init({
     allowNull: false
   },
   ipAddress: {
-    type: DataTypes.STRING
+    type: DataTypes.STRING,
+    allowNull: true
   },
   userAgent: {
-    type: DataTypes.STRING
+    type: DataTypes.STRING,
+    allowNull: true
   },
   metadata: {
-    type: DataTypes.JSONB
+    type: DataTypes.JSONB,
+    allowNull: true
   }
 }, {
   sequelize,
-  modelName: "AuditLog",
-  tableName: "audit_logs",
-  timestamps: true
+  modelName: "auditLog",
+  tableName: "auditLogs",
+  timestamps: true,
+  underscored: false,
+  freezeTableName: true,
 });

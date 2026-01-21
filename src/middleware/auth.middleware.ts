@@ -32,6 +32,11 @@ export const authMiddleware = catchAsync(async (req: AuthRequest, _res: Response
   let decoded: any;
   try {
     decoded = jwt.verify(token, JWT_SECRET);
+
+    if (decoded.mfaStep) {
+      return next(new AppError("MFA verification incomplete. Please verify your OTP code.", 401));
+    }
+
   } catch (err: any) {
     const message = err.name === "TokenExpiredError" ? "Token expired" : "Invalid token";
     return next(new AppError(message, 401));
