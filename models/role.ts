@@ -27,4 +27,5 @@ Role.init({
   sequelize,
   tableName: "roles",
   timestamps: true,
+  underscored: false,
 });

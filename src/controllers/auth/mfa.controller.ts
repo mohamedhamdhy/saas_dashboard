@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import speakeasy from "speakeasy";
 import { User, Role } from "../../../models/index";
 import { Session } from "../../../models/session";
 import { AuthRequest } from "../../middleware/auth.middleware";
@@ -11,8 +12,6 @@ import { AppError } from "../../utils/appError";
 import { logSecurityEvent } from "../../utils/logger";
 import { generateTokens } from "../../utils/token";
 import { sendResponse } from "../../utils/sendResponse";
-
-const { authenticator } = require("otplib");
 
 const createUserSession = async (req: Request, userId: string) => {
   await Session.create({
@@ -26,16 +25,18 @@ export const setupMFA = catchAsync(async (req: AuthRequest, res: Response, _next
   const user = await User.findByPk(req.user?.id);
   if (!user) throw new AppError("User not found", 404);
 
-  const secret = authenticator.generateSecret();
-  const otpauth = authenticator.keyuri(user.email, "SaaS Dashboard", secret);
-  const qrCodeUrl = await QRCode.toDataURL(otpauth);
+  const secret = speakeasy.generateSecret({
+    name: `SaaS Dashboard (${user.email})`
+  });
 
-  user.mfaSecret = secret;
+  const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
+
+  user.mfaSecret = secret.base32;
   await user.save();
 
   sendResponse(res, 200, "MFA setup initiated. Scan the QR code.", {
     qrCode: qrCodeUrl,
-    manualSecret: secret
+    manualSecret: secret.base32
   });
 });
 
@@ -47,7 +48,13 @@ export const activateMFA = catchAsync(async (req: AuthRequest, res: Response, ne
     return next(new AppError("MFA setup not initiated.", 400));
   }
 
-  const isValid = authenticator.verify({ token, secret: user.mfaSecret });
+  // UPDATED: Added window: 1 to allow for time drift
+  const isValid = speakeasy.totp.verify({
+    secret: user.mfaSecret,
+    encoding: 'base32',
+    token,
+    window: 1
+  });
 
   if (!isValid) {
     return next(new AppError("Invalid verification code. Activation failed.", 401));
@@ -84,7 +91,12 @@ export const verifyLoginMFA = catchAsync(async (req: Request, res: Response, nex
 
   if (!user || !user.mfaSecret) return next(new AppError("User not found", 404));
 
-  const isValid = authenticator.verify({ token: otpCode, secret: user.mfaSecret });
+  const isValid = speakeasy.totp.verify({
+    secret: user.mfaSecret,
+    encoding: 'base32',
+    token: otpCode,
+    window: 1
+  });
 
   if (!isValid) {
     await logSecurityEvent(req, "MFA_FAILED", user.id);

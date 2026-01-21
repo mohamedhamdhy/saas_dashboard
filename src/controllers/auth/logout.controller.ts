@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { User } from "../../../models/user";
-import { Blacklist } from "../../../models/blacklist";
+import { User, Blacklist, Session } from "../../../models/index";
 import { catchAsync } from "../../utils/catchAsync";
 import { AppError } from "../../utils/appError";
 import { logSecurityEvent } from "../../utils/logger";
@@ -16,6 +15,7 @@ export const logout = catchAsync(async (req: Request, res: Response, next: NextF
   }
 
   const decoded: any = jwt.decode(token);
+
   if (decoded?.exp) {
     await Blacklist.create({
       token: token,
@@ -24,7 +24,16 @@ export const logout = catchAsync(async (req: Request, res: Response, next: NextF
   }
 
   const userId = decoded?.id || (req as any).user?.id;
+
   if (userId) {
+    await Session.destroy({
+      where: {
+        userId: userId,
+        ipAddress: req.ip || req.headers["x-forwarded-for"] || "127.0.0.1",
+        userAgent: req.headers["user-agent"] || "Unknown Device"
+      }
+    });
+
     await User.update(
       { refreshToken: null },
       { where: { id: userId } }
@@ -39,5 +48,5 @@ export const logout = catchAsync(async (req: Request, res: Response, next: NextF
 
   await logSecurityEvent(req, "USER_LOGOUT", userId || null);
 
-  sendResponse(res, 200, "Session terminated successfully.");
+  sendResponse(res, 200, "Logged out from this device successfully.");
 });

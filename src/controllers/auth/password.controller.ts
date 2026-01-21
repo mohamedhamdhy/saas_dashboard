@@ -25,13 +25,55 @@ export const forgotPassword = catchAsync(async (req: Request, res: Response, nex
     await user.save();
 
     const resetURL = `${req.protocol}://${req.get("host")}/api/auth/reset-password/${resetToken}`;
-    const message = `Forgot your password? Reset it here: ${resetURL}\nIf you didn't forget your password, please ignore this email!`;
+
+    const htmlTemplate = `
+    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #f0f0f0; border-radius: 8px;">
+        <div style="text-align: center; padding-bottom: 20px;">
+            <h1 style="color: #0052cc; margin: 0; font-size: 28px;">High Minds Digital</h1>
+        </div>
+
+        <h2 style="font-size: 20px; font-weight: 600;">Welcome back! 👋</h2>
+        
+        <p>We received a request to reset the password for your account. We’re sorry to hear you’re having trouble logging in—it happens to the best of us! 😅</p>
+        
+        <p>To get you back into your workspace safely, please click the button below to set a new password:</p>
+
+        <div style="text-align: center; margin: 35px 0;">
+            <a href="${resetURL}" style="background-color: #0052cc; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold; display: inline-block;">
+                Reset My Password 🔑
+            </a>
+        </div>
+
+        <p style="font-size: 14px; line-height: 1.6;">
+            <strong>Security Note:</strong> This link is valid for only <span style="color: #d32f2f;">10 minutes</span> for your protection. After that, you'll need to request a new one.
+        </p>
+
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin-top: 25px;">
+            <p style="margin: 0; font-size: 13px; color: #666;">
+                <strong>Didn't request this?</strong> If you didn't initiate this change, please ignore this email or contact our security team if you have concerns. Your account remains secure.
+            </p>
+        </div>
+
+        <p style="margin-top: 30px; font-size: 14px;">
+            Best regards,<br>
+            <strong>The HMD Engineering Team</strong> 🚀
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 11px; color: #aaa; text-align: center;">
+            © 2026 HMD Pvt. Ltd. All rights reserved.<br>
+            This is an automated security notification.
+        </p>
+    </div>`;
+
+    const textFallback = `Welcome to High Minds Digital!\n\nWe're sorry you're having trouble logging in. Reset your password by visiting this link: ${resetURL}\n\nNote: This link expires in 10 minutes.`;
 
     try {
         await sendEmail({
             email: user.email,
-            subject: "Your password reset token (valid for 10 min)",
-            message,
+            subject: "🔐 Secure Password Reset - High Minds Digital",
+            message: textFallback,
+            html: htmlTemplate,
         });
 
         await logSecurityEvent(req, "PASSWORD_RESET_REQUESTED", user.id, { email });

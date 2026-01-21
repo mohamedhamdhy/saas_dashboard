@@ -1,5 +1,5 @@
 import { Request } from "express";
-import { AuditLog } from "../../models/auditLog";
+import { AuditLog } from "../../models/auditLogs";
 
 export const logSecurityEvent = async (
   req: Request,
