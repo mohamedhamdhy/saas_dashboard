@@ -1,19 +1,38 @@
-import { DataTypes, Model } from "sequelize";
+// MODULE: User Session Management (Paranoid Mode)
+// HEADER: Imports & Setup
+import { DataTypes, Model, Optional } from "sequelize";
 import { sequelize } from "../src/config/db";
 
-export class Session extends Model {
+// HEADER: Type Definitions
+// PROPS: Explicitly defining attributes to ensure full Type-Safety in Cron Jobs and Services.
+interface SessionAttributes {
+  id: string;
+  userId: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  lastActive: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null; // SECURITY: Essential for querying soft-deleted records.
+}
+
+interface SessionCreationAttributes extends Optional<SessionAttributes, "id" | "lastActive"> { }
+
+// HEADER: Class Implementation
+export class Session extends Model<SessionAttributes, SessionCreationAttributes> implements SessionAttributes {
   public id!: string;
   public userId!: string;
-  public ipAddress!: string;
-  public userAgent!: string;
+  public ipAddress!: string | null;
+  public userAgent!: string | null;
   public lastActive!: Date;
 
-  // Timestamps
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
+  // SECURITY: Soft-delete timestamp used for session revocation forensics.
+  public readonly deletedAt!: Date | null;
+
   static associate(models: any) {
-    // Defines the relationship back to the User
     this.belongsTo(models.User, {
       foreignKey: "userId",
       as: "user"
@@ -21,6 +40,7 @@ export class Session extends Model {
   }
 }
 
+// HEADER: Table Schema Initialization
 Session.init({
   id: {
     type: DataTypes.UUID,
@@ -46,7 +66,8 @@ Session.init({
 }, {
   sequelize,
   tableName: "sessions",
-  modelName: "session", // Added modelName for clarity in registry
+  modelName: "session",
   timestamps: true,
-  underscored: false // <--- CRITICAL: Ensures Sequelize uses userId and lastActive exactly as written
+  paranoid: true,
+  underscored: false
 });

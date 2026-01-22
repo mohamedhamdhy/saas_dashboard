@@ -1,14 +1,13 @@
+// MODULE: User Identity & Authentication Model
+// HEADER: Imports & Dependencies
 import { DataTypes, Model, Optional } from "sequelize";
 import { sequelize } from "../src/config/db";
 import bcrypt from "bcryptjs";
-
-// Use 'import type' to prevent circular dependency crashes at runtime
 import type { Role } from "./role";
 import type { Organization } from "./organization";
 
-/**
- * Interface for the User model attributes
- */
+//HEADER: Type Definitions
+// PROPS: Core attributes for the User entity, including security fields.
 interface UserAttributes {
   id: string;
   name: string;
@@ -28,13 +27,12 @@ interface UserAttributes {
   tokenVersion: number;
 }
 
-/**
- * Interface for creating a User (makes certain fields optional)
- */
+// PROPS: Attributes allowed during User.create() calls.
 interface UserCreationAttributes extends Optional<UserAttributes,
   "id" | "organizationId" | "phoneNumber" | "isActive" | "passwordChangedAt" | "passwordResetToken" | "passwordResetExpires" | "refreshToken" | "mfaSecret" | "isMfaEnabled" | "mfaRecoveryCodes" | "tokenVersion"
 > { }
 
+// HEADER: Class Implementation
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: string;
   public name!: string;
@@ -53,47 +51,42 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public mfaRecoveryCodes?: string[] | null;
   public tokenVersion!: number;
 
-  // Timestamps
+  // DB: Timestamps managed automatically by Sequelize 'paranoid' mode.
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
   public readonly deletedAt!: Date | null;
 
-  // Association Properties (populated via 'include')
+  // DB: Association Type Hints (for TypeScript Intellisense)
   public readonly role?: Role;
   public readonly organization?: Organization;
 
-  /**
-   * Compares a provided password with the hashed password in the DB
-   */
+  // SECURITY: Verify user password for login flows.
   public async comparePassword(candidatePassword: string): Promise<boolean> {
     return await bcrypt.compare(candidatePassword, this.password);
   }
 
-  /**
-   * S+ ELITE: Defines associations using the registry from index.ts
-   */
+  // DB: Entity Relationships (One-to-Many / Many-to-One)
   static associate(models: any) {
-    this.belongsTo(models.Role, { 
-      foreignKey: "roleId", 
-      as: "role" 
+    this.belongsTo(models.Role, {
+      foreignKey: "roleId",
+      as: "role"
     });
-    this.belongsTo(models.Organization, { 
-      foreignKey: "organizationId", 
-      as: "organization" 
+    this.belongsTo(models.Organization, {
+      foreignKey: "organizationId",
+      as: "organization"
     });
-    this.hasMany(models.AuditLog, { 
-      foreignKey: "userId", 
-      as: "auditLogs" 
+    this.hasMany(models.AuditLog, {
+      foreignKey: "userId",
+      as: "auditLogs"
     });
-    this.hasMany(models.Session, { 
-      foreignKey: "userId", 
-      as: "sessions" 
+    this.hasMany(models.Session, {
+      foreignKey: "userId",
+      as: "sessions"
     });
   }
 
-  /**
-   * S+ ELITE: Overrides default JSON output to hide sensitive fields
-   */
+  // SECURITY: Data Sanitization
+  // NOTE: Ensures sensitive credentials never leak to the client-side/JSON responses.
   toJSON() {
     const values: any = { ...this.get() };
 
@@ -104,7 +97,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     delete values.mfaSecret;
     delete values.mfaRecoveryCodes;
 
-    // Helper fields for easier frontend consumption
+    // STYLING: Flattening relational data for cleaner API consumption.
     values.roleName = this.role?.name || null;
     values.organizationName = this.organization?.name || null;
 
@@ -112,6 +105,8 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   }
 }
 
+// HEADER: Database Initialization
+// DB: Defining the 'users' table schema and constraints.
 User.init({
   id: {
     type: DataTypes.UUID,
@@ -187,6 +182,7 @@ User.init({
   tableName: "users",
   modelName: "user",
   timestamps: true,
-  paranoid: true, // Enables soft deletes (deletedAt)
-  underscored: false // Maps camelCase in code to snake_case in DB
+  // PERF: Paranoid mode enables soft deletes (deleteAt) to preserve audit trails.
+  paranoid: true,  
+  underscored: false
 });

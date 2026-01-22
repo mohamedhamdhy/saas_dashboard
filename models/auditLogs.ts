@@ -1,6 +1,9 @@
+// MODULE: System Audit Logging & Forensics
+// HEADER: Imports & Setup
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../src/config/db";
 
+// HEADER: Class Implementation
 export class AuditLog extends Model {
   public id!: string;
   public userId!: string | null;
@@ -9,9 +12,12 @@ export class AuditLog extends Model {
   public userAgent!: string;
   public metadata!: any;
 
+  // DB: Audit logs are immutable; createdAt is the primary dimension for log analysis.
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
+  // DB: Relationships
+  // NOTE: userId is nullable to track actions taken by unauthenticated users (e.g., failed logins).
   static associate(models: any) {
     this.belongsTo(models.User, {
       foreignKey: "userId",
@@ -20,6 +26,8 @@ export class AuditLog extends Model {
   }
 }
 
+// HEADER: Table Schema Initialization
+// DB: Defining the 'auditLogs' table structure.
 AuditLog.init({
   id: {
     type: DataTypes.UUID,
@@ -51,6 +59,7 @@ AuditLog.init({
   modelName: "auditLog",
   tableName: "auditLogs",
   timestamps: true,
+  paranoid: true,
   underscored: false,
   freezeTableName: true,
 });

@@ -1,9 +1,27 @@
+// MODULE: Sequelize CLI Orchestration
+// Provides a path-mapping configuration to ensure the Sequelize CLI integrates with the TypeScript source structure.
+
+// HEADER: Imports & Bootstrapping
 const path = require("path");
+
+// FIX: Enables the Sequelize CLI to consume TypeScript configuration files directly.
+// NOTE: This prevents "Unknown file extension .ts" errors when running migrations.
 require("ts-node/register");
 
+/**
+ * HEADER: Path Registry
+ * API: Maps standard Sequelize CLI commands to your custom project directory structure.
+ */
 module.exports = {
+  // DB: The central database connection configuration (Development, Test, Production).
   config: path.resolve("src", "config", "config.ts"),
+  
+  // DB: The directory containing your Sequelize Model definitions.
   "models-path": path.resolve("models"),
+  
+  // DB: The directory for data-seeding scripts (Initial Roles, Admin Users).
   "seeders-path": path.resolve("seeders"),
+  
+  // DB: The directory for version-controlled Schema changes.
   "migrations-path": path.resolve("migrations"),
 };
