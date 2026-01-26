@@ -67,6 +67,5 @@ Organization.init({
   tableName: "organizations",
   modelName: "organization",
   timestamps: true,
-  paranoid: true, 
   underscored: false
 });

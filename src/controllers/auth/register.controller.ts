@@ -36,7 +36,7 @@ export const register = catchAsync(async (req: Request, res: Response, next: Nex
   // SECTION: Tenant (Organization) Linking
   // NOTE: Logic to ensure users (except Super Admins) belong to a valid Organization.
   let organizationId: string | null = null;
-  if (roleName !== "SUPER_ADMIN") {
+  if (roleName !== "SuperAdmin") {
     if (!organizationName) {
       return next(new AppError("organizationName is required for this role.", 400));
     }

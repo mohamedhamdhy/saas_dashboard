@@ -32,31 +32,50 @@ const createUserSession = async (req: Request, userId: string) => {
   });
 };
 
-/**
- * HEADER: MFA Setup Initiation
- * API: Generates a unique TOTP secret and a QR Code for the user to scan.
- * NOTE: The secret is stored in 'Pending' status until the user verifies their first code.
- */
 export const setupMFA = catchAsync(async (req: AuthRequest, res: Response, _next: NextFunction) => {
+  // 💡 Purpose
+  // This snippet shows how I implemented Multi-Factor Authentication (MFA) 
+  // to add an extra layer of security for users in my SaaS platform. 🔒
+
+  // 💡 User Verification
+  // First, fetch the user from the database using req.user.id.
+  // If the user doesn’t exist, the API returns a 404 error. ✅
   const user = await User.findByPk(req.user?.id);
   if (!user) throw new AppError("User not found", 404);
 
-  // CRYPTO: Generate a high-entropy base32 secret.
+  // 💡 Secret Generation
+  // Generate a high-entropy TOTP secret using Speakeasy.
+  // This will be used to create one-time codes for MFA.
+  // Each secret is linked to the user in a pending state until verified. 🔑
   const secret = speakeasy.generateSecret({
     name: `SaaS Dashboard (${user.email})`
   });
 
-  // UX: Generate a Base64 QR code image string for immediate frontend rendering.
+  // 💡 QR Code Generation
+  // Convert the secret into a Base64 QR code using QRCode.toDataURL().
+  // This allows users to scan it immediately with an authenticator app. 📱
   const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
 
+  // 💡 Persistence
+  // Save the secret to the user record in the database.
+  // This ensures the system can verify OTPs later. 💾
   user.mfaSecret = secret.base32;
   await user.save();
 
+  // 💡 Response
+  // The API returns the QR code and the manual secret so the frontend can render it 
+  // and the user can complete MFA setup. 🎯
   sendResponse(res, 200, "MFA setup initiated. Scan the QR code.", {
     qrCode: qrCodeUrl,
     manualSecret: secret.base32
   });
+
+  // 💡 Overall Impact
+  // This simple setup strengthens authentication & authorization,
+  // protecting user accounts against unauthorized access — 
+  // one step closer to a secure SaaS platform! 🚀
 });
+
 
 /**
  * HEADER: MFA Activation & Recovery Generation

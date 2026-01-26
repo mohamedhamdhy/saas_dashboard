@@ -59,7 +59,6 @@ AuditLog.init({
   modelName: "auditLog",
   tableName: "auditLogs",
   timestamps: true,
-  paranoid: true,
   underscored: false,
   freezeTableName: true,
 });

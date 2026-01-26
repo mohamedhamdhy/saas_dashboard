@@ -49,6 +49,5 @@ Blacklist.init({
   modelName: "blacklist",
   tableName: "blacklists",
   timestamps: true,
-  paranoid: true,
   underscored: false 
 });

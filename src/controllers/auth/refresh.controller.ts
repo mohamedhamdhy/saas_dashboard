@@ -77,6 +77,13 @@ export const refreshToken = catchAsync(async (req: Request, res: Response, next:
 
   // API: Sending the new Access Token back for API calls.
   sendResponse(res, 200, "Token refreshed successfully", {
-    accessToken: tokens.accessToken
+    accessToken: tokens.accessToken,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role?.name,
+      organizationId: user.organizationId
+    }
   });
 });
