@@ -8,7 +8,6 @@ export async function up(queryInterface: QueryInterface) {
     isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
     createdAt: { type: DataTypes.DATE, allowNull: false },
     updatedAt: { type: DataTypes.DATE, allowNull: false },
-    deletedAt: { type: DataTypes.DATE, allowNull: true },
   });
 }
 

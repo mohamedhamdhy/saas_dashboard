@@ -26,23 +26,42 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // SECURITY: Dynamic CORS configuration to restrict cross-origin access.
+// 💡 Purpose
+// Setting up CORS (Cross-Origin Resource Sharing) to control which origins 
+// can access the backend APIs of our SaaS platform. 🌐🔒
+
 const allowedOrigins = [
-    "http://localhost:3000",
-    "https://your-saas-dashboard.com"
+    "http://localhost:3000",           // ✅ Allow local development
+    "https://your-saas-dashboard.com"  // ✅ Allow production dashboard
 ];
 
 app.use(cors({
+    // 💡 Origin Check
+    // Check if the request's origin is in the allowed list.
+    // If no origin (like from mobile apps or Postman), allow it.
     origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
+        if (!origin) return callback(null, true); // 🟢 Allow requests with no origin
         if (allowedOrigins.indexOf(origin) === -1) {
+            // ❌ Block unauthorized origins
             const msg = "The CORS policy for this site does not allow access from the specified Origin.";
             return callback(new Error(msg), false);
         }
-        return callback(null, true);
+        return callback(null, true); // 🟢 Allow authorized origins
     },
+    
+    // 💡 Allowed HTTP Methods
+    // Define which HTTP methods can be used in requests
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    credentials: true,
+
+    // 💡 Credentials
+    // Allow cookies, authorization headers, or TLS client certificates to be sent
+    credentials: true, 
 }));
+
+// 💡 Overall Impact
+// This ensures only trusted frontend applications can interact with our APIs,
+// enhancing security while supporting both development and production environments. 🚀
+
 
 // HEADER: Global Rate Limiting
 // SECURITY: Applied early in the stack to drop malicious traffic before it hits the DB.

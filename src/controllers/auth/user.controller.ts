@@ -11,7 +11,7 @@ import { catchAsync } from "../../utils/catchAsync";
 import { AppError } from "../../utils/appError";
 import { logSecurityEvent } from "../../utils/logger";
 import { sendResponse } from "../../utils/sendResponse";
-
+import { RoleName } from "../../../models/role";
 /**
  * HEADER: Get All Users (Admin/SuperAdmin)
  * API: Fetches users based on organizational boundaries.
@@ -201,25 +201,58 @@ export const updateUser = catchAsync(async (req: AuthRequest, res: Response, nex
 });
 
 /**
- * HEADER: Hard User Deletion
- * API: Removes a user permanently from the system.
- * NOTE: Destroys all associated sessions before deleting the user record.
+ * HEADER: Hard User Deletion (Protected)
+ * API: Removes a user permanently from the system with strict hierarchy checks.
+ * SECURITY: 
+ * 1. Only SuperAdmins can initiate deletions.
+ * 2. Self-deletion is strictly prohibited to prevent system orphaning.
+ * 3. SuperAdmin accounts are protected from all deletion attempts.
  */
 export const deleteUser = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const id = req.params.id as string;
-  const user = await User.findByPk(id);
+  const targetId = req.params.id as string;
+  const requesterId = req.user?.id;
+  const requesterRole = req.user?.roleName;
+
+  // SECTION: Authority Check
+  // SECURITY: Only SuperAdmin is permitted to access the deletion logic.
+  if (requesterRole !== RoleName.SuperAdmin) {
+    return next(new AppError("Access Denied: Only SuperAdmins can delete accounts.", 403));
+  }
+
+  // SECTION: Self-Deletion Guard
+  // SECURITY: Prevents a SuperAdmin from deleting their own account.
+  if (targetId === requesterId) {
+    return next(new AppError("Security Violation: You cannot delete your own account.", 400));
+  }
+
+  // SECTION: Target Verification
+  // NOTE: We include the role to verify the target's status.
+  const user = await User.findByPk(targetId, {
+    include: [{ model: Role, as: "role", attributes: ["name"] }]
+  });
 
   if (!user) {
     return next(new AppError("User not found. Deletion target does not exist.", 404));
   }
 
-  // SECURITY: Clean up the sessions table so no "phantom sessions" remain for a non-existent user.
-  await Session.destroy({ where: { userId: id } });
+  // SECTION: Protected Account Guard
+  // SECURITY: Prevents the deletion of ANY SuperAdmin, even by another SuperAdmin.
+  if (user.role?.name === RoleName.SuperAdmin) {
+    return next(new AppError("Action Prohibited: SuperAdmin accounts cannot be deleted.", 403));
+  }
 
-  // NOTE: 'force: true' bypasses paranoid/soft-delete if it were enabled on the User model.
+  // SECTION: Atomic Cleanup & Execution
+  // DB: Clear active sessions first to ensure immediate access revocation.
+  await Session.destroy({ where: { userId: targetId } });
+
+  // NOTE: 'force: true' performs a hard delete, removing the record permanently from the disk.
   await user.destroy({ force: true });
 
-  await logSecurityEvent(req, "ADMIN_USER_DELETED", req.user?.id, { targetUserId: id });
+  // AUDIT: Logging the administrative action for forensic trails.
+  await logSecurityEvent(req, "ADMIN_USER_DELETED", requesterId, { 
+    targetUserId: targetId,
+    targetEmail: user.email 
+  });
 
-  sendResponse(res, 200, "User has been deactivated and all sessions terminated.");
+  sendResponse(res, 200, "User has been permanently deleted and all sessions terminated.");
 });

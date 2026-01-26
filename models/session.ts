@@ -68,6 +68,5 @@ Session.init({
   tableName: "sessions",
   modelName: "session",
   timestamps: true,
-  paranoid: true,
   underscored: false
 });

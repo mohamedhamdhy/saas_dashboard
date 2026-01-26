@@ -43,6 +43,5 @@ Role.init({
   tableName: "roles",
   // NOTE: Timestamps allow tracking of when specific authorization levels were added.
   timestamps: true,
-  paranoid: true,
   underscored: false,
 });

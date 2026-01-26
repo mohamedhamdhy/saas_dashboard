@@ -21,12 +21,12 @@ import {
   loginSchema,
   resetPasswordSchema
 } from "../middleware/validation/validate.validation";
-
+import { RoleName } from "../../models/role";
 const router = Router();
 
 // HEADER: Public & Onboarding Endpoints
 // SECURITY: Registration is restricted to SUPER_ADMIN to prevent unauthorized tenant creation.
-router.post("/register", authLimiter, authMiddleware, roleMiddleware(["SuperAdmin"]), validate(registerSchema), register);
+router.post("/register", authLimiter, authMiddleware, roleMiddleware([RoleName.SuperAdmin]), validate(registerSchema), register);
 router.post("/login", authLimiter, validate(loginSchema), login);
 
 // HEADER: Password Recovery Flow

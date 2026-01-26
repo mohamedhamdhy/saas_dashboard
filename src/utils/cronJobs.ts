@@ -11,6 +11,7 @@ import { Session } from "../../models/session";
  * HEADER: Cron Initialization
  * API: Configures and starts scheduled tasks.
  * NOTE: Currently set to "0 0 * * *" (Midnight every day).
+ * PERF: Running heavy cleanup at midnight minimizes impact on peak-hour traffic.
  */
 export const initCronJobs = () => {
   cron.schedule("0 0 * * *", async () => {
